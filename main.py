@@ -42,6 +42,12 @@ def clean_students(data):
     return data
 
 
+def add_averages(data):
+    # average of the 3 subjects for every student
+    data["average"] = data[subjects].mean(axis=1).round(2)
+    return data
+
+
 students = load_students("students.csv")
 
 print("Student Performance Analyzer")
@@ -70,6 +76,24 @@ print()
 print("Missing values after cleaning:")
 print(students.isnull().sum().sum())
 print("Majors:", list(students["major"].unique()))
+
+students = add_averages(students)
+print()
+print(students[["name", "major", "average"]].head(10))
+
+class_average = students["average"].mean()
+print()
+print("Class average:", round(class_average, 2))
+
+# best and worst student
+best = students.loc[students["average"].idxmax()]
+worst = students.loc[students["average"].idxmin()]
+print("Highest:", best["name"], best["average"])
+print("Lowest:", worst["name"], worst["average"])
+
+# students above the class average
+above = students[students["average"] > class_average]
+print("Above average:", len(above), "out of", len(students))
 
 print()
 print("Data types:")
