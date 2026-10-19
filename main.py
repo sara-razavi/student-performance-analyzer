@@ -48,6 +48,16 @@ def add_averages(data):
     return data
 
 
+def analyze_subjects(data):
+    # one row for every subject
+    result = pd.DataFrame()
+    result["average"] = data[subjects].mean().round(2)
+    result["highest"] = data[subjects].max()
+    result["lowest"] = data[subjects].min()
+    result["failed"] = (data[subjects] < 10).sum()
+    return result
+
+
 students = load_students("students.csv")
 
 print("Student Performance Analyzer")
@@ -94,6 +104,22 @@ print("Lowest:", worst["name"], worst["average"])
 # students above the class average
 above = students[students["average"] > class_average]
 print("Above average:", len(above), "out of", len(students))
+
+print()
+print("Subject analysis:")
+subject_table = analyze_subjects(students)
+print(subject_table)
+
+best_subject = subject_table["average"].idxmax()
+hardest_subject = subject_table["average"].idxmin()
+print("Best subject:", best_subject)
+print("Hardest subject:", hardest_subject)
+
+# who is the best in each subject
+print()
+for s in subjects:
+    top = students.loc[students[s].idxmax()]
+    print("Top in", s + ":", top["name"], "(" + str(top[s]) + ")")
 
 print()
 print("Data types:")
