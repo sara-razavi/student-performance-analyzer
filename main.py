@@ -58,6 +58,22 @@ def analyze_subjects(data):
     return result
 
 
+def filter_students(data, major=None, min_average=None, max_age=None):
+    result = data
+    if major != None:
+        result = result[result["major"] == major]
+    if min_average != None:
+        result = result[result["average"] >= min_average]
+    if max_age != None:
+        result = result[result["age"] <= max_age]
+    return result
+
+
+def top_students(data, count=5):
+    sorted_data = data.sort_values("average", ascending=False)
+    return sorted_data.head(count)
+
+
 students = load_students("students.csv")
 
 print("Student Performance Analyzer")
@@ -120,6 +136,33 @@ print()
 for s in subjects:
     top = students.loc[students[s].idxmax()]
     print("Top in", s + ":", top["name"], "(" + str(top[s]) + ")")
+
+print()
+print("Filtering")
+cs_students = filter_students(students, major="CS")
+print("CS students:", len(cs_students))
+
+good_it = filter_students(students, major="IT", min_average=14)
+print("IT students with average 14 or more:")
+print(good_it[["name", "age", "average"]])
+
+young = filter_students(students, max_age=21, min_average=15)
+print("Students 21 or younger with average 15+:", list(young["name"]))
+
+# students who failed at least one subject
+failed_any = students[(students[subjects] < 10).any(axis=1)]
+print("Failed at least one subject:", len(failed_any))
+print(failed_any[["name"] + subjects])
+
+print()
+print("Top 5 students:")
+print(top_students(students)[["name", "major", "average"]])
+
+# sort by programming, best first
+print()
+print("Best in programming:")
+by_prog = students.sort_values(["programming", "math"], ascending=False)
+print(by_prog[["name", "programming", "math"]].head(5))
 
 print()
 print("Data types:")
