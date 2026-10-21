@@ -74,6 +74,13 @@ def top_students(data, count=5):
     return sorted_data.head(count)
 
 
+def group_by_major(data):
+    groups = data.groupby("major")
+    result = groups[subjects + ["average"]].mean().round(2)
+    result["students"] = groups["name"].count()
+    return result
+
+
 students = load_students("students.csv")
 
 print("Student Performance Analyzer")
@@ -163,6 +170,33 @@ print()
 print("Best in programming:")
 by_prog = students.sort_values(["programming", "math"], ascending=False)
 print(by_prog[["name", "programming", "math"]].head(5))
+
+print()
+print("Group analysis")
+major_table = group_by_major(students)
+print(major_table)
+
+best_major = major_table["average"].idxmax()
+print("Best major:", best_major, "with", major_table.loc[best_major, "average"])
+print("Biggest major:", major_table["students"].idxmax())
+
+# which major is best at each subject
+print()
+for s in subjects:
+    print(s, "->", major_table[s].idxmax())
+
+# compare ages
+print()
+print("Average by age:")
+by_age = students.groupby("age")["average"].agg(["mean", "count"])
+by_age["mean"] = by_age["mean"].round(2)
+print(by_age)
+
+# how many students failed in each major
+failed_major = students[(students[subjects] < 10).any(axis=1)].groupby("major")["name"].count()
+print()
+print("Students who failed something, by major:")
+print(failed_major)
 
 print()
 print("Data types:")
