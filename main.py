@@ -82,6 +82,13 @@ def group_by_major(data):
     return result
 
 
+def show_title(text):
+    print()
+    print("=" * 45)
+    print(text)
+    print("=" * 45)
+
+
 def get_statistics(data):
     stats = pd.DataFrame()
     for s in subjects + ["average"]:
@@ -93,131 +100,96 @@ def get_statistics(data):
 
 
 students = load_students("students.csv")
+rows_before = len(students)
 
 print("Student Performance Analyzer")
-print("----------------------------")
-print("Rows:", students.shape[0])
-print("Columns:", students.shape[1])
-print("Column names:", list(students.columns))
-
-print()
-print("First 5 students:")
-print(students.head())
-
-# check if some values are missing
-print()
-print("Missing values:")
-print(students.isnull().sum())
+print("Loaded", rows_before, "rows from students.csv")
 
 print()
 print("Cleaning data...")
-rows_before = len(students)
 students = clean_students(students)
-print("Rows before:", rows_before)
-print("Rows after:", len(students))
-
-print()
-print("Missing values after cleaning:")
-print(students.isnull().sum().sum())
-print("Majors:", list(students["major"].unique()))
-
+print("Rows after cleaning:", len(students))
 students = add_averages(students)
-print()
-print(students[["name", "major", "average"]].head(10))
 
+# overview
+show_title("Overview")
 class_average = students["average"].mean()
-print()
-print("Class average:", round(class_average, 2))
-
-# best and worst student
 best = students.loc[students["average"].idxmax()]
 worst = students.loc[students["average"].idxmin()]
-print("Highest:", best["name"], best["average"])
-print("Lowest:", worst["name"], worst["average"])
-
-# students above the class average
 above = students[students["average"] > class_average]
+
+print("Students:", len(students))
+print("Class average:", round(class_average, 2))
+print("Highest:", best["name"], "-", best["average"])
+print("Lowest:", worst["name"], "-", worst["average"])
 print("Above average:", len(above), "out of", len(students))
 
-print()
-print("Subject analysis:")
+# subjects
+show_title("Subjects")
 subject_table = analyze_subjects(students)
 print(subject_table)
+print()
+print("Best subject:", subject_table["average"].idxmax())
+print("Hardest subject:", subject_table["average"].idxmin())
 
-best_subject = subject_table["average"].idxmax()
-hardest_subject = subject_table["average"].idxmin()
-print("Best subject:", best_subject)
-print("Hardest subject:", hardest_subject)
-
-# who is the best in each subject
 print()
 for s in subjects:
-    top = students.loc[students[s].idxmax()]
-    print("Top in", s + ":", top["name"], "(" + str(top[s]) + ")")
+    # more than one student can have the top grade
+    top = students[students[s] == students[s].max()]
+    print("Top in", s + ":", ", ".join(top["name"]), "(" + str(students[s].max()) + ")")
 
-print()
-print("Filtering")
+# filtering and sorting
+show_title("Filtering and sorting")
 cs_students = filter_students(students, major="CS")
 print("CS students:", len(cs_students))
 
 good_it = filter_students(students, major="IT", min_average=14)
+print()
 print("IT students with average 14 or more:")
-print(good_it[["name", "age", "average"]])
+print(good_it[["name", "age", "average"]].to_string(index=False))
 
 young = filter_students(students, max_age=21, min_average=15)
-print("Students 21 or younger with average 15+:", list(young["name"]))
+print()
+print("Students 21 or younger with average 15+:", ", ".join(young["name"]))
 
-# students who failed at least one subject
 failed_any = students[(students[subjects] < 10).any(axis=1)]
+print()
 print("Failed at least one subject:", len(failed_any))
-print(failed_any[["name"] + subjects])
+print(failed_any[["name"] + subjects].to_string(index=False))
 
 print()
 print("Top 5 students:")
-print(top_students(students)[["name", "major", "average"]])
+print(top_students(students)[["name", "major", "average"]].to_string(index=False))
 
-# sort by programming, best first
 print()
 print("Best in programming:")
 by_prog = students.sort_values(["programming", "math"], ascending=False)
-print(by_prog[["name", "programming", "math"]].head(5))
+print(by_prog[["name", "programming", "math"]].head(5).to_string(index=False))
 
-print()
-print("Group analysis")
+# groups
+show_title("Groups")
 major_table = group_by_major(students)
 print(major_table)
 
 best_major = major_table["average"].idxmax()
+print()
 print("Best major:", best_major, "with", major_table.loc[best_major, "average"])
 print("Biggest major:", major_table["students"].idxmax())
 
-# which major is best at each subject
 print()
 for s in subjects:
-    print(s, "->", major_table[s].idxmax())
+    print("Best major in", s + ":", major_table[s].idxmax())
 
-# compare ages
 print()
 print("Average by age:")
 by_age = students.groupby("age")["average"].agg(["mean", "count"])
 by_age["mean"] = by_age["mean"].round(2)
 print(by_age)
 
-# how many students failed in each major
-failed_major = students[(students[subjects] < 10).any(axis=1)].groupby("major")["name"].count()
-print()
-print("Students who failed something, by major:")
-print(failed_major)
-
-print()
-print("Basic statistics")
+# statistics
+show_title("Statistics")
 print(get_statistics(students))
 
-# pandas describe for a quick check
-print()
-print(students[subjects].describe().round(2))
-
-# correlation between subjects
 print()
 print("Correlation between subjects:")
 corr = students[subjects].corr().round(2)
@@ -227,24 +199,36 @@ pairs = [("math", "programming"), ("math", "english"), ("programming", "english"
 best_pair = pairs[0]
 for p in pairs:
     value = corr.loc[p[0], p[1]]
-    print(p[0], "and", p[1], ":", value)
     if abs(value) > abs(corr.loc[best_pair[0], best_pair[1]]):
         best_pair = p
+print()
 print("Strongest relation:", best_pair[0], "and", best_pair[1])
 
 # same thing with numpy
 r = np.corrcoef(students["math"], students["programming"])[0, 1]
 print("numpy check (math, programming):", round(r, 2))
-
 print("Age and average:", round(students["age"].corr(students["average"]), 2))
 
-# how many students are far from the class average
 avg = students["average"].mean()
 std = students["average"].std()
 far = students[abs(students["average"] - avg) > std]
 print()
-print("Students more than 1 std away from average:", list(far["name"]))
+print("Students more than 1 std away from the class average:")
+print(", ".join(far["name"]))
+
+# save the results
+students.to_csv("students_clean.csv", index=False)
+
+with open("report.txt", "w") as file:
+    file.write("Student Performance Report\n")
+    file.write("Students: " + str(len(students)) + "\n")
+    file.write("Class average: " + str(round(class_average, 2)) + "\n")
+    file.write("Highest: " + best["name"] + " (" + str(best["average"]) + ")\n")
+    file.write("Lowest: " + worst["name"] + " (" + str(worst["average"]) + ")\n")
+    file.write("Best subject: " + subject_table["average"].idxmax() + "\n")
+    file.write("Hardest subject: " + subject_table["average"].idxmin() + "\n")
+    file.write("Best major: " + best_major + "\n")
+    file.write("Failed at least one subject: " + str(len(failed_any)) + "\n")
 
 print()
-print("Data types:")
-print(students.dtypes)
+print("Saved students_clean.csv and report.txt")
