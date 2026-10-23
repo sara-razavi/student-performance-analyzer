@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 subjects = ["math", "programming", "english"]
 
@@ -79,6 +80,16 @@ def group_by_major(data):
     result = groups[subjects + ["average"]].mean().round(2)
     result["students"] = groups["name"].count()
     return result
+
+
+def get_statistics(data):
+    stats = pd.DataFrame()
+    for s in subjects + ["average"]:
+        col = data[s]
+        stats[s] = [col.mean(), col.median(), col.std(), col.var(),
+                    np.percentile(col, 25), np.percentile(col, 75)]
+    stats.index = ["mean", "median", "std", "variance", "25%", "75%"]
+    return stats.round(2)
 
 
 students = load_students("students.csv")
@@ -197,6 +208,42 @@ failed_major = students[(students[subjects] < 10).any(axis=1)].groupby("major")[
 print()
 print("Students who failed something, by major:")
 print(failed_major)
+
+print()
+print("Basic statistics")
+print(get_statistics(students))
+
+# pandas describe for a quick check
+print()
+print(students[subjects].describe().round(2))
+
+# correlation between subjects
+print()
+print("Correlation between subjects:")
+corr = students[subjects].corr().round(2)
+print(corr)
+
+pairs = [("math", "programming"), ("math", "english"), ("programming", "english")]
+best_pair = pairs[0]
+for p in pairs:
+    value = corr.loc[p[0], p[1]]
+    print(p[0], "and", p[1], ":", value)
+    if abs(value) > abs(corr.loc[best_pair[0], best_pair[1]]):
+        best_pair = p
+print("Strongest relation:", best_pair[0], "and", best_pair[1])
+
+# same thing with numpy
+r = np.corrcoef(students["math"], students["programming"])[0, 1]
+print("numpy check (math, programming):", round(r, 2))
+
+print("Age and average:", round(students["age"].corr(students["average"]), 2))
+
+# how many students are far from the class average
+avg = students["average"].mean()
+std = students["average"].std()
+far = students[abs(students["average"] - avg) > std]
+print()
+print("Students more than 1 std away from average:", list(far["name"]))
 
 print()
 print("Data types:")
